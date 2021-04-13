@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./gradlew clean copyToServer
+./gradlew clean copyToServer -Prelocate=false
 
 server=paper
 version=1.16.5
