@@ -1,13 +1,13 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.OutputStream
 
 plugins {
-    kotlin("jvm") version "1.5.0"
-    kotlin("plugin.serialization") version "1.5.0"
-    id("com.github.johnrengelman.shadow") version "5.2.0"
-//    `maven-publish`
+    kotlin("jvm") version "1.5.10"
+    kotlin("plugin.serialization") version "1.5.10"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
+    `maven-publish`
 }
-
-val relocate = (findProperty("relocate") as? String)?.toBoolean() ?: true
 
 repositories {
     mavenLocal()
@@ -18,11 +18,12 @@ repositories {
 
 dependencies {
     compileOnly(kotlin("stdlib"))
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0-RC")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
+    //    compileOnly("com.github.monun:invfx:2.0.0")
 
-    implementation("com.github.monun:tap:+")
-    implementation("com.github.monun:kommand:+")
+    implementation("com.github.monun:tap:3.6.0")
+    implementation("com.github.monun:kommand:1.0.0")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
@@ -32,46 +33,56 @@ dependencies {
 
 tasks {
     withType<JavaCompile> {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+        sourceCompatibility = "16"
+        targetCompatibility = "16"
     }
-    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "11"
+
+    withType<KotlinCompile> {
+        kotlinOptions.jvmTarget = "16"
     }
+
     processResources {
         filesMatching("**/*.yml") {
             expand(project.properties)
         }
     }
+
     test {
         useJUnitPlatform()
         doLast {
             file("logs").deleteRecursively()
         }
     }
+
     create<Jar>("sourcesJar") {
         from(sourceSets["main"].allSource)
         archiveClassifier.set("sources")
     }
-    shadowJar {
+
+    fun ShadowJar.pluginJar(classifier: String = "") {
         archiveBaseName.set(project.property("pluginName").toString())
         archiveVersion.set("") // For bukkit plugin update
-        archiveClassifier.set("") // Remove 'all'
-
-        if (relocate) {
-            relocate("com.github.monun.kommand", "${rootProject.group}.${rootProject.name}.kommand")
-            relocate("com.github.monun.tap", "${rootProject.group}.${rootProject.name}.tap")
-        }
-
-        doFirst {
-            println("relocate = $relocate")
-        }
+        archiveClassifier.set(classifier)
+        from(sourceSets["main"].output)
+        configurations = listOf(project.configurations.implementation.get().apply { isCanBeResolved = true })
     }
+
+    create<ShadowJar>("pluginJar") {
+        pluginJar()
+        relocate("com.github.monun.kommand", "${rootProject.group}.${rootProject.name}.kommand")
+        relocate("com.github.monun.tap", "${rootProject.group}.${rootProject.name}.tap")
+    }
+
+    create<ShadowJar>("testPluginJar") {
+        pluginJar("TEST")
+    }
+
     build {
-        dependsOn(shadowJar)
+        dependsOn(named("pluginJar"))
     }
+
     create<Copy>("copyToServer") {
-        from(shadowJar)
+        from(named("testPluginJar"))
         val plugins = File(rootDir, ".server/plugins")
         if (File(plugins, shadowJar.get().archiveFileName.get()).exists()) {
             into(File(plugins, "update"))
@@ -79,6 +90,7 @@ tasks {
             into(plugins)
         }
     }
+
     create<DefaultTask>("setupWorkspace") {
         doLast {
             val versions = arrayOf(
@@ -120,12 +132,12 @@ tasks {
     }
 }
 
-//publishing {
-//    publications {
-//        create<MavenPublication>(project.property("pluginName").toString()) {
-//            artifactId = project.name
-//            from(components["java"])
-//            artifact(tasks["sourcesJar"])
-//        }
-//    }
-//}
+publishing {
+    publications {
+        create<MavenPublication>(project.property("pluginName").toString()) {
+            artifactId = project.name
+            from(components["java"])
+            artifact(tasks["sourcesJar"])
+        }
+    }
+}
