@@ -3,9 +3,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.OutputStream
 
 plugins {
-    kotlin("jvm") version "1.5.10"
-    kotlin("plugin.serialization") version "1.5.10"
-    id("com.github.johnrengelman.shadow") version "7.0.0"
+    kotlin("jvm") version "1.4.32"
+    kotlin("plugin.serialization") version "1.4.32"
+    id("com.github.johnrengelman.shadow") version "5.2.0"
     `maven-publish`
 }
 
@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     compileOnly(kotlin("stdlib"))
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.3")
     compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
 //    compileOnly("com.github.monun:invfx:2.0.0")
 
@@ -40,13 +40,8 @@ dependencies {
 }*/
 
 tasks {
-    withType<JavaCompile> {
-        sourceCompatibility = "16"
-        targetCompatibility = "16"
-    }
-
     withType<KotlinCompile> {
-        kotlinOptions.jvmTarget = "16"
+        kotlinOptions.jvmTarget = "11"
     }
 
     processResources {
