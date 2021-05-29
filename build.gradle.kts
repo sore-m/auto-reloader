@@ -85,9 +85,10 @@ tasks {
     }
 
     create<Copy>("copyToServer") {
-        from(named("testPluginJar"))
+        val task = named("testPluginJar")
+        from(task)
         val plugins = File(rootDir, ".server/plugins")
-        if (File(plugins, shadowJar.get().archiveFileName.get()).exists()) {
+        if (File(plugins, (task.get() as ShadowJar).archiveFileName.get()).exists()) {
             into(File(plugins, "update"))
         } else {
             into(plugins)
