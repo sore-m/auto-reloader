@@ -67,25 +67,26 @@ tasks {
         archiveVersion.set("") // For bukkit plugin update
         archiveClassifier.set(classifier)
         from(sourceSets["main"].output)
+
         configurations = listOf(project.configurations.implementation.get().apply { isCanBeResolved = true })
     }
 
-    create<ShadowJar>("pluginJar") {
+    create<ShadowJar>("paperJar") {
         pluginJar()
         relocate("com.github.monun.kommand", "${rootProject.group}.${rootProject.name}.kommand")
         relocate("com.github.monun.tap", "${rootProject.group}.${rootProject.name}.tap")
     }
 
-    create<ShadowJar>("testPluginJar") {
+    create<ShadowJar>("testPaperJar") {
         pluginJar("TEST")
     }
 
     build {
-        dependsOn(named("pluginJar"))
+        dependsOn(named("paperJar"))
     }
 
     create<Copy>("copyToServer") {
-        val task = named("testPluginJar")
+        val task = named("testPaperJar")
         from(task)
         val plugins = File(rootDir, ".server/plugins")
         if (File(plugins, (task.get() as ShadowJar).archiveFileName.get()).exists()) {
