@@ -39,6 +39,12 @@ dependencies {
     compileOnly("com.comphenix.protocol:ProtocolLib:4.6.0")
 }*/
 
+fun TaskContainer.paperJar(name: String, classifier: String = "") {
+    create<ShadowJar>(name) {
+        from(sourceSets["main"].output)
+    }
+}
+
 tasks {
     withType<KotlinCompile> {
         kotlinOptions.jvmTarget = "11"
