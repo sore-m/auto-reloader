@@ -39,9 +39,14 @@ dependencies {
     compileOnly("com.comphenix.protocol:ProtocolLib:4.6.0")
 }*/
 
-fun TaskContainer.paperJar(name: String, classifier: String = "") {
+fun TaskContainer.createPaperJar(name: String, classifier: String = "", configuration: ShadowJar.() -> Unit) {
     create<ShadowJar>(name) {
+        archiveBaseName.set(project.property("pluginName").toString())
+        archiveVersion.set("") // For bukkit plugin update
+        archiveClassifier.set(classifier)
         from(sourceSets["main"].output)
+        configurations = listOf(project.configurations.implementation.get().apply { isCanBeResolved = true })
+        configuration()
     }
 }
 
@@ -68,38 +73,25 @@ tasks {
         archiveClassifier.set("sources")
     }
 
-    fun ShadowJar.pluginJar(classifier: String = "") {
-        archiveBaseName.set(project.property("pluginName").toString())
-        archiveVersion.set("") // For bukkit plugin update
-        archiveClassifier.set(classifier)
-        from(sourceSets["main"].output)
-
-        configurations = listOf(project.configurations.implementation.get().apply { isCanBeResolved = true })
-    }
-
-    create<ShadowJar>("paperJar") {
-        pluginJar()
+    createPaperJar("paperJar") {
         relocate("com.github.monun.kommand", "${rootProject.group}.${rootProject.name}.kommand")
         relocate("com.github.monun.tap", "${rootProject.group}.${rootProject.name}.tap")
     }
 
-    create<ShadowJar>("testPaperJar") {
-        pluginJar("TEST")
+    createPaperJar("debugJar", "DEBUG") {
+        var dest = File(rootDir, ".server/plugins")
+        val pluginName = archiveFileName.get()
+        val pluginFile = File(dest, pluginName)
+        if (pluginFile.exists()) dest = File(dest, "update")
+
+        copy {
+            from(archiveFile)
+            into(dest)
+        }
     }
 
     build {
         dependsOn(named("paperJar"))
-    }
-
-    create<Copy>("copyToServer") {
-        val task = named("testPaperJar")
-        from(task)
-        val plugins = File(rootDir, ".server/plugins")
-        if (File(plugins, (task.get() as ShadowJar).archiveFileName.get()).exists()) {
-            into(File(plugins, "update"))
-        } else {
-            into(plugins)
-        }
     }
 
     create<DefaultTask>("setupWorkspace") {
