@@ -81,7 +81,7 @@ tasks {
     }
 
     createPaperJar("debugJar", "DEBUG") {
-        var dest = File(rootDir, ".server/plugins")
+        var dest = File(rootDir, ".debug/plugins")
         val pluginName = archiveFileName.get()
         val pluginFile = File(dest, pluginName)
         if (pluginFile.exists()) dest = File(dest, "update")
