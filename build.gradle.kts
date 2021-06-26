@@ -1,62 +1,43 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import de.undercouch.gradle.tasks.download.Download
-import org.apache.commons.io.output.NullOutputStream
+import java.io.OutputStream.nullOutputStream
 
 plugins {
-    kotlin("jvm") version "1.5.10"
-    kotlin("plugin.serialization") version "1.5.10"
-    id("com.github.johnrengelman.shadow") version "5.2.0"
+    kotlin("jvm") version "1.5.20"
+    kotlin("plugin.serialization") version "1.5.20"
+    id("com.github.johnrengelman.shadow") version "7.0.0"
     `maven-publish`
 }
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
+        languageVersion.set(JavaLanguageVersion.of(16))
     }
 }
 
 repositories {
-    mavenLocal()
     mavenCentral()
     maven(url = "https://papermc.io/repo/repository/maven-public/")
     maven(url = "https://jitpack.io/")
+    mavenLocal()
 }
 
 dependencies {
     compileOnly(kotlin("stdlib"))
     compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
-    compileOnly("com.destroystokyo.paper:paper-api:1.16.5-R0.1-SNAPSHOT")
-//    compileOnly("com.github.monun:invfx:2.1.0")
-
-    implementation("com.github.monun:tap:3.7.1")
-    implementation("com.github.monun:kommand:1.1.0")
+    compileOnly("io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
     testImplementation("org.mockito:mockito-core:3.6.28")
-    testImplementation("org.spigotmc:spigot:1.16.5-R0.1-SNAPSHOT")
-}
-
-/*//ProtocolLib
-repositories {
-    maven("https://repo.dmulloy2.net/repository/public/")
-}
-dependencies {
-    compileOnly("com.comphenix.protocol:ProtocolLib:4.6.0")
-}*/
-
-fun TaskContainer.createPaperJar(name: String, classifier: String = "", configuration: ShadowJar.() -> Unit) {
-    create<ShadowJar>(name) {
-        archiveBaseName.set(project.property("pluginName").toString())
-        archiveVersion.set("") // For bukkit plugin update
-        archiveClassifier.set(classifier)
-        from(sourceSets["main"].output)
-        configurations = listOf(project.configurations.implementation.get().apply { isCanBeResolved = true })
-        configuration()
-    }
+    testImplementation("org.spigotmc:spigot:1.17-R0.1-SNAPSHOT")
 }
 
 tasks {
+    withType<JavaCompile>().configureEach {
+        options.encoding = "UTF-8"
+        options.release.set(16)
+    }
+
     processResources {
         filesMatching("**/*.yml") {
             expand(project.properties)
@@ -70,23 +51,17 @@ tasks {
         }
     }
 
-    create<Jar>("sourcesJar") {
-        from(sourceSets["main"].allSource)
-        archiveClassifier.set("sources")
-    }
-
-    createPaperJar("paperJar") {
-        relocate("com.github.monun.kommand", "${rootProject.group}.${rootProject.name}.kommand")
-        relocate("com.github.monun.tap", "${rootProject.group}.${rootProject.name}.tap")
-    }
-
-    createPaperJar("debugJar", "DEBUG") {
-        var dest = File(rootDir, ".debug/plugins")
-        val pluginName = archiveFileName.get()
-        val pluginFile = File(dest, pluginName)
-        if (pluginFile.exists()) dest = File(dest, "update")
+    create<Jar>("paperJar") {
+        from(sourceSets["main"].output)
+        archiveBaseName.set(project.property("pluginName").toString())
+        archiveVersion.set("") // For bukkit plugin update
 
         doLast {
+            var dest = File(rootDir, ".debug/plugins")
+            val pluginName = archiveFileName.get()
+            val pluginFile = File(dest, pluginName)
+            if (pluginFile.exists()) dest = File(dest, "update")
+
             copy {
                 from(archiveFile)
                 into(dest)
@@ -94,14 +69,15 @@ tasks {
         }
     }
 
-    build {
-        dependsOn(named("paperJar"))
+    create<Jar>("sourcesJar") {
+        from(sourceSets["main"].allSource)
+        archiveClassifier.set("sources")
     }
 
     create<DefaultTask>("setupWorkspace") {
         doLast {
             val versions = arrayOf(
-                "1.16.5"
+                "1.17"
             )
             val buildtoolsDir = file(".buildtools")
             val buildtools = File(buildtoolsDir, "BuildTools.jar")
@@ -124,11 +100,11 @@ tasks {
 
                     javaexec {
                         workingDir(buildtoolsDir)
-                        main = "-jar"
+                        mainClass.set("-jar")
                         args = listOf("./${buildtools.name}", "--rev", v)
                         // Silent
-                        standardOutput = NullOutputStream.NULL_OUTPUT_STREAM
-                        errorOutput = NullOutputStream.NULL_OUTPUT_STREAM
+                        standardOutput = nullOutputStream()
+                        errorOutput = nullOutputStream()
                     }
                 }
             }.onFailure {
