@@ -4,7 +4,7 @@
 
 server='https://papermc.io/api/v1/paper/1.17/latest/download'
 plugins=(
-
+  'https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/target/ProtocolLib.jar'
 )
 
 script=$(basename "$0")

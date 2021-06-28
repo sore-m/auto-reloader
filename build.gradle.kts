@@ -1,11 +1,9 @@
 import de.undercouch.gradle.tasks.download.Download
-import java.io.OutputStream.nullOutputStream
 
 plugins {
     kotlin("jvm") version "1.5.20"
     kotlin("plugin.serialization") version "1.5.20"
     id("com.github.johnrengelman.shadow") version "7.0.0"
-    `maven-publish`
 }
 
 java {
@@ -22,9 +20,11 @@ repositories {
 }
 
 dependencies {
-    compileOnly(kotlin("stdlib"))
-    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     compileOnly("io.papermc.paper:paper-api:1.17-R0.1-SNAPSHOT")
+    implementation(kotlin("stdlib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
+    implementation("io.github.monun:kommand:1.2.1")
+    implementation("io.github.monun:tap:4.0.0-RC")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
@@ -69,11 +69,6 @@ tasks {
         }
     }
 
-    create<Jar>("sourcesJar") {
-        from(sourceSets["main"].allSource)
-        archiveClassifier.set("sources")
-    }
-
     create<DefaultTask>("setupWorkspace") {
         doLast {
             val versions = arrayOf(
@@ -83,9 +78,14 @@ tasks {
             val buildtools = File(buildtoolsDir, "BuildTools.jar")
 
             val maven = File(System.getProperty("user.home"), ".m2/repository/org/spigotmc/spigot/")
+            val prefix = maven.name
             val repos = maven.listFiles { file: File -> file.isDirectory } ?: emptyArray()
             val missingVersions = versions.filter { version ->
-                repos.find { it.name.startsWith(version) }?.also { println("Skip downloading spigot-$version") } == null
+                val repo = repos.find { it.name.startsWith(version) } ?: return@filter true
+                val name = repo.name
+                val jar = File(repo, "$prefix-$name.jar")
+                val pom = File(repo, "$prefix-$name.pom")
+                (!jar.exists() || !pom.exists()).also { if (!it) println("Skip download $prefix-$version") }
             }.also { if (it.isEmpty()) return@doLast }
 
             val download by registering(Download::class) {
@@ -95,32 +95,16 @@ tasks {
             download.get().download()
 
             runCatching {
-                for (v in missingVersions) {
-                    println("Downloading spigot-$v...")
+                for (version in missingVersions) {
+                    println("Downloading $prefix-$version...")
 
                     javaexec {
                         workingDir(buildtoolsDir)
                         mainClass.set("-jar")
-                        args = listOf("./${buildtools.name}", "--rev", v)
-                        // Silent
-                        standardOutput = nullOutputStream()
-                        errorOutput = nullOutputStream()
+                        args = listOf("./${buildtools.name}", "--rev", version, "--disable-java-check", "--remapped")
                     }
                 }
-            }.onFailure {
-                it.printStackTrace()
-            }
-            buildtoolsDir.deleteRecursively()
-        }
-    }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>(project.property("pluginName").toString()) {
-            artifactId = project.name
-            from(components["java"])
-            artifact(tasks["sourcesJar"])
+            }.onFailure { it.printStackTrace() }
         }
     }
 }
