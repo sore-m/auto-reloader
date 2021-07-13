@@ -2,7 +2,5 @@ name: ${rootProject.name.capitalize()}
 version: $version
 main: $group.${rootProject.name}.plugin.${rootProject.name.capitalize()}Plugin
 libraries:
-  - org.jetbrains.kotlin:kotlin-stdlib:1.5.20
-  - org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0
-  - io.github.monun:tap:4.0.0
-  - io.github.monun:kommand:2.0.1
+  - io.github.monun:tap:4.1.1
+  - io.github.monun:kommand:2.1.0
