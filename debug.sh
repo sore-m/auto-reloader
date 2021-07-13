@@ -2,9 +2,7 @@
 
 ./gradlew clean paperJar
 
-server='https://papermc.io/api/v1/paper/1.17/latest/download'
 plugins=(
-  'https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/target/ProtocolLib.jar'
 )
 
 script=$(basename "$0")
@@ -18,15 +16,15 @@ if [ ! -f "$server_folder/$server_script" ]; then
   if [ -f ".server/$server_script" ]; then
     cp ".server/$server_script" "$server_folder/$server_script"
   else
-    wget -qc -P "$server_folder" -N 'https://raw.githubusercontent.com/monun/server-script/master/.server/server.sh'
+    curl 'https://raw.githubusercontent.com/monun/server-script/master/.server/server.sh' > "$server_folder/server.sh"
   fi
 fi
 
-cd "$server_folder"
+cd "$server_folder" || exit
 
 if [ ! -f "$server_config" ]; then
     cat << EOF > $server_config
-server=$server
+server=https://papermc.io/api/v1/paper/1.17.1/latest/download
 debug=true
 debug_port=5005
 backup=false
