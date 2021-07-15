@@ -3,4 +3,4 @@ version: $version
 main: $group.${rootProject.name}.plugin.${rootProject.name.capitalize()}Plugin
 libraries:
   - io.github.monun:tap:4.1.1
-  - io.github.monun:kommand:2.1.0
+  - io.github.monun:kommand:2.2.0

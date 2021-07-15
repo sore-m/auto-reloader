@@ -1,6 +1,6 @@
 package com.github.monun.sample.plugin
 
-import io.github.monun.kommand.Kommand
+import io.github.monun.kommand.kommand
 import net.kyori.adventure.text.Component.text
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -9,10 +9,12 @@ import org.bukkit.plugin.java.JavaPlugin
  */
 class SamplePlugin : JavaPlugin() {
     override fun onEnable() {
-        Kommand.register("sample") {
-            then("ping") {
-                executes {
-                    it.source.sender.sendMessage(text("pong!"))
+        kommand {
+            register("sample") {
+                then("ping") {
+                    executes {
+                        sender.sendMessage(text("pong"))
+                    }
                 }
             }
         }
