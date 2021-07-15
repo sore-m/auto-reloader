@@ -5,6 +5,8 @@ import io.github.monun.tap.config.Config
 import io.github.monun.tap.config.ConfigSupport
 import io.github.monun.tap.config.RangeInt
 import io.github.monun.tap.util.GitHubSupport
+import io.github.monun.tap.util.updateFromGitHubMagically
+import kotlinx.coroutines.DelicateCoroutinesApi
 import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.Component.text
 import net.kyori.adventure.text.event.HoverEvent
@@ -16,6 +18,8 @@ import java.io.File
 /**
  * @author Monun
  */
+
+@DelicateCoroutinesApi
 class AutoReloaderPlugin : JavaPlugin(), Runnable {
     private lateinit var updates: MutableList<Pair<Plugin, File>>
 
@@ -44,30 +48,10 @@ class AutoReloaderPlugin : JavaPlugin(), Runnable {
             register("autoreloader") {
                 then("update") {
                     executes {
-                        GitHubSupport.downloadLatestRelease(
-                            file,
-                            "monun",
-                            "auto-reloader",
-                            description.version,
-                            "AutoReloader.jar"
-                        ) {
-                            onSuccess {
-                                sender.sendMessage(text("Update Successful"))
-                            }
-                            onFailure {
-                                sender.sendMessage(
-                                    text().content("Update failed.").color(NamedTextColor.RED)
-                                        .hoverEvent(
-                                            HoverEvent.showText(
-                                                text().content(it.javaClass.canonicalName).append(space())
-                                                    .append(text().content(it.message.toString()))
-                                            )
-                                        )
-                                )
-                            }
+                        updateFromGitHubMagically("monun", "auto-reloader", "AutoReloader.jar") {
+                            sender.sendMessage(text(it))
                         }
                     }
-
                 }
             }
         }

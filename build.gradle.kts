@@ -16,7 +16,9 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
 
+
     implementation(kotlin("stdlib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation("io.github.monun:tap-api:4.1.1")
     implementation("io.github.monun:kommand-api:2.2.0")
 
