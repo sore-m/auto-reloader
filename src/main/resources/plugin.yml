@@ -1,6 +1,6 @@
-name: ${rootProject.name.capitalize()}
+name: AutoReloader
 version: $version
-main: $group.${rootProject.name}.plugin.${rootProject.name.capitalize()}Plugin
+main: com.github.monun.autoreloader.plugin.AutoReloaderPlugin
 libraries:
   - io.github.monun:tap:4.1.1
   - io.github.monun:kommand:2.2.0

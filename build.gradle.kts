@@ -1,7 +1,5 @@
 plugins {
     kotlin("jvm") version "1.5.21"
-    kotlin("plugin.serialization") version "1.5.21"
-    id("com.github.johnrengelman.shadow") version "7.0.0"
 }
 
 java {
@@ -19,7 +17,6 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.17.1-R0.1-SNAPSHOT")
 
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0")
     implementation("io.github.monun:tap-api:4.1.1")
     implementation("io.github.monun:kommand-api:2.2.0")
 
@@ -37,9 +34,6 @@ tasks {
 
     test {
         useJUnitPlatform()
-        doLast {
-            file("logs").deleteRecursively()
-        }
     }
 
     create<Jar>("paperJar") {
