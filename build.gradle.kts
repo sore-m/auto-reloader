@@ -38,7 +38,7 @@ tasks {
 
     create<Jar>("paperJar") {
         from(sourceSets["main"].output)
-        archiveBaseName.set(project.name.capitalize())
+        archiveBaseName.set("AutoReloader")
         archiveVersion.set("") // For bukkit plugin update
 
         doLast {
