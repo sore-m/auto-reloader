@@ -1,16 +1,10 @@
 package com.github.monun.autoreloader.plugin
 
-import io.github.monun.kommand.kommand
-import io.github.monun.tap.config.Config
-import io.github.monun.tap.config.ConfigSupport
-import io.github.monun.tap.config.RangeInt
-import io.github.monun.tap.util.GitHubSupport
-import io.github.monun.tap.util.updateFromGitHubMagically
-import kotlinx.coroutines.DelicateCoroutinesApi
 import net.kyori.adventure.text.Component.space
 import net.kyori.adventure.text.Component.text
-import net.kyori.adventure.text.event.HoverEvent
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
+import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
@@ -19,68 +13,58 @@ import java.io.File
  * @author Monun
  */
 
-@DelicateCoroutinesApi
-class AutoReloaderPlugin : JavaPlugin(), Runnable {
-    private lateinit var updates: MutableList<Pair<Plugin, File>>
-
-    @Config
-    private var updateAction = UpdateAction.RELOAD
-
-    @Config
-    @RangeInt(min = 0)
+class AutoReloaderPlugin : JavaPlugin() {
+    private lateinit var updateAction: UpdateAction
     private var countdownTicks = 40
 
+    private lateinit var watchlist: MutableList<Pair<Plugin, File>>
+
     override fun onEnable() {
-        ConfigSupport.computeConfig(this, File(dataFolder, "config.yml"))
+        saveDefaultConfig()
+
+        val config = config
+        updateAction = UpdateAction.valueOf(config.getString("update-action")!!.uppercase())
+        countdownTicks = config.getInt("countdown-ticks")
 
         server.scheduler.let { scheduler ->
-            scheduler.runTaskTimer(this, this, 1L, 1L)
             scheduler.runTask(this, Runnable {
-                updates = server.pluginManager.plugins.mapTo(ArrayList()) { plugin ->
+                watchlist = server.pluginManager.plugins.mapTo(ArrayList()) { plugin ->
                     val file = plugin.file
                     val updateFolder = File(file.parentFile, "update")
                     plugin to File(updateFolder, file.name)
+                }.onEach { (plugin, file) ->
+                    logger.info("- ${plugin.name}: ${file.path}")
                 }
             })
-        }
 
-        kommand {
-            register("autoreloader") {
-                then("update") {
-                    executes {
-                        updateFromGitHubMagically("monun", "auto-reloader", "AutoReloader.jar") {
-                            sender.sendMessage(text(it))
-                        }
-                    }
-                }
-            }
+            scheduler.runTaskTimer(this, this::watch, 1L, 1L)
         }
     }
 
     private var updateTicks = 0
 
-    override fun run() {
+    private fun watch() {
         if (updateTicks > 0 && --updateTicks <= 0) {
             val server = server
-            when (updateAction) {
-                UpdateAction.RELOAD -> {
-                    server.dispatchCommand(server.consoleSender, "reload confirm")
-                }
-                UpdateAction.STOP -> {
-                    server.dispatchCommand(server.consoleSender, "stop")
-                }
-                UpdateAction.RESTART -> {
-                    server.dispatchCommand(server.consoleSender, "restart")
-                }
-            }
+            val console = server.consoleSender
+            Bukkit.dispatchCommand(console, updateAction.commands)
         }
 
-        updates.removeIf { update ->
+        watchlist.removeIf { update ->
             if (update.second.exists()) {
                 server.sendMessage(
                     text().content("Found update file for plugin").color(NamedTextColor.LIGHT_PURPLE)
                         .append(space())
-                        .append(text().content(update.first.name).color(NamedTextColor.GOLD))
+                        .append(
+                            text().content(update.first.name).color(NamedTextColor.GOLD)
+                                .decorate(TextDecoration.ITALIC).decorate(TextDecoration.UNDERLINED)
+                        )
+                )
+                server.sendMessage(
+                    text().color(NamedTextColor.YELLOW).content("Server will ")
+                        .append(text().content(updateAction.message))
+                        .append(text().content(" in ")).append(text((countdownTicks + 19) / 20))
+                        .append(text().content(" seconds"))
                 )
                 updateTicks = countdownTicks
                 true
@@ -96,8 +80,8 @@ private val Plugin.file: File
         }.get(this) as File
     }
 
-enum class UpdateAction {
-    RELOAD,
-    STOP,
-    RESTART
+enum class UpdateAction(val commands: String, val message: String) {
+    RELOAD("reload confirm", "reload"),
+    RESTART("restart", "restart"),
+    SHUTDOWN("stop", "shutdown");
 }
